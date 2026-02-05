@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Chess</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Lobby Screen -->
+    <div id="lobby" class="container">
+        <h1>Simple Chess</h1>
+        <div class="lobby-box">
+            <input type="text" id="player-name" placeholder="Your name" maxlength="20">
+            <button id="find-game-btn" class="btn primary">Find Game</button>
+            <div class="divider">or</div>
+            <button id="create-private-btn" class="btn secondary">Create Private Game</button>
+            <div class="join-private">
+                <input type="text" id="game-code" placeholder="Game code" maxlength="6">
+                <button id="join-private-btn" class="btn secondary">Join</button>
+            </div>
+        </div>
+        <div id="lobby-status"></div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="container" style="display: none;">
+        <h1>Simple Chess</h1>
+        <div class="game-wrapper">
+            <div class="game-section">
+                <div class="game-info">
+                    <div class="player-info">
+                        <span id="opponent-name">Opponent</span>
+                        <span id="opponent-color" class="color-badge">Black</span>
+                    </div>
+                    <span id="turn-indicator">White's Turn</span>
+                    <div class="player-info">
+                        <span id="your-color" class="color-badge">White</span>
+                        <span id="your-name">You</span>
+                    </div>
+                </div>
+                <div id="board"></div>
+                <div id="message"></div>
+                <div class="game-controls">
+                    <button id="resign-btn" class="btn danger">Resign</button>
+                    <button id="draw-btn" class="btn secondary">Offer Draw</button>
+                </div>
+            </div>
+            <div class="chat-section">
+                <div class="chat-header">Chat</div>
+                <div id="chat-messages"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Type a message..." maxlength="200">
+                    <button id="send-chat-btn" class="btn primary">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Draw Offer Modal -->
+    <div id="draw-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <p id="draw-message">Opponent offers a draw</p>
+            <div class="modal-buttons">
+                <button id="accept-draw-btn" class="btn primary">Accept</button>
+                <button id="decline-draw-btn" class="btn danger">Decline</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
