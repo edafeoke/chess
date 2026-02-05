@@ -4,9 +4,17 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    },
+    transports: ['websocket', 'polling']
+});
 
-app.use(express.static('.'));
+// Serve static files from project root
+const path = require('path');
+app.use(express.static(path.join(__dirname, '..')));
 
 const games = new Map();
 const waitingPlayers = [];
@@ -23,7 +31,6 @@ io.on('connection', (socket) => {
         socket.playerName = playerName || 'Anonymous';
 
         if (gameId) {
-            // Join specific game
             const game = games.get(gameId);
             if (game && !game.black) {
                 game.black = { id: socket.id, name: socket.playerName };
@@ -49,7 +56,6 @@ io.on('connection', (socket) => {
                 socket.emit('error', { message: 'Game not found or full' });
             }
         } else {
-            // Find or create game
             if (waitingPlayers.length > 0) {
                 const opponent = waitingPlayers.shift();
                 const newGameId = generateGameId();
@@ -183,13 +189,11 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log('Player disconnected:', socket.id);
 
-        // Remove from waiting list
         const waitingIndex = waitingPlayers.findIndex(p => p.id === socket.id);
         if (waitingIndex !== -1) {
             waitingPlayers.splice(waitingIndex, 1);
         }
 
-        // Handle game disconnection
         const gameId = socket.gameId;
         if (gameId && games.has(gameId)) {
             io.to(gameId).emit('opponentDisconnected', {
@@ -201,12 +205,5 @@ io.on('connection', (socket) => {
 });
 
 // Export for Vercel serverless
-module.exports = app;
-
-// For local development
-if (require.main === module) {
-    const PORT = process.env.PORT || 3000;
-    server.listen(PORT, () => {
-        console.log(`Chess server running on http://localhost:${PORT}`);
-    });
-}
+// Note: This approach has limitations with Socket.IO due to serverless stateless nature
+module.exports = server;
