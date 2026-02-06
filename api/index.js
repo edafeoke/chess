@@ -4,31 +4,38 @@ const path = require('path');
 const app = express();
 
 // Serve static files from project root
-app.use(express.static(path.join(__dirname, '..')));
+// This handles CSS, JS, and other static assets
+// Must be before catch-all route
+const staticPath = path.join(__dirname, '..');
+app.use(express.static(staticPath));
 
-// Catch-all handler: serve index.html for any route that doesn't match a static file
-// This is needed for Vercel serverless to properly serve the SPA
+// Catch-all route: serve index.html for SPA routing
+// This only runs if static middleware didn't find a file
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'index.html'));
+    // Only serve index.html for routes that don't have file extensions
+    // Static files with extensions are already handled by express.static above
+    if (path.extname(req.path)) {
+        return res.status(404).send('Not found');
+    }
+    res.sendFile(path.join(staticPath, 'index.html'));
 });
 
-// Note: Socket.IO setup removed - it won't work on Vercel serverless
-// For Socket.IO to work, you need a persistent server (Railway, Render, Fly.io, etc.)
-// The Socket.IO code below is kept for reference but won't function on Vercel
-
-// Socket.IO setup (commented out - won't work on Vercel serverless)
-// For Socket.IO to work, deploy to Railway, Render, Fly.io, or similar
-/*
+// Socket.IO setup
+// Note: Socket.IO has significant limitations on Vercel serverless
+// For production, consider Railway, Render, Fly.io, or similar platforms
 const http = require('http');
 const { Server } = require('socket.io');
 
+// Create HTTP server wrapper for Socket.IO
 const server = http.createServer(app);
+
 const io = new Server(server, {
     cors: {
         origin: "*",
         methods: ["GET", "POST"]
     },
-    transports: ['websocket', 'polling']
+    transports: ['websocket', 'polling'],
+    allowEIO3: true
 });
 
 const games = new Map();
@@ -218,11 +225,9 @@ io.on('connection', (socket) => {
         }
     });
 });
-*/
 
 // Export Express app for Vercel serverless
-// This will serve static files correctly
 // Note: Socket.IO with persistent WebSocket connections will NOT work reliably 
-// on Vercel's serverless platform due to stateless nature of functions
-// For Socket.IO, deploy to Railway, Render, Fly.io, or similar platforms
+// on Vercel's traditional serverless platform due to stateless nature of functions
+// The server and io are set up but may not function correctly in serverless environment
 module.exports = app;
