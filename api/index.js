@@ -1,23 +1,76 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 
-// Serve static files from project root
-// This handles CSS, JS, and other static assets
-// Must be before catch-all route
-const staticPath = path.join(__dirname, '..');
-app.use(express.static(staticPath));
+// Get the project root directory
+// Try multiple possible paths for Vercel serverless environment
+let projectRoot = path.join(__dirname, '..');
+if (!fs.existsSync(path.join(projectRoot, 'style.css'))) {
+    // Try process.cwd() as fallback
+    projectRoot = process.cwd();
+}
+if (!fs.existsSync(path.join(projectRoot, 'style.css'))) {
+    // Try __dirname directly (if files are in same directory)
+    projectRoot = __dirname;
+}
+
+// Debug: Log the project root (remove in production if needed)
+console.log('Project root:', projectRoot);
+console.log('__dirname:', __dirname);
+console.log('process.cwd():', process.cwd());
+if (fs.existsSync(projectRoot)) {
+    console.log('Files in project root:', fs.readdirSync(projectRoot).slice(0, 10));
+}
+
+// Serve static files explicitly with error handling
+app.get('/style.css', (req, res) => {
+    const filePath = path.join(projectRoot, 'style.css');
+    if (fs.existsSync(filePath)) {
+        res.sendFile(filePath, { 
+            headers: { 'Content-Type': 'text/css' } 
+        });
+    } else {
+        res.status(404).send('CSS file not found');
+    }
+});
+
+app.get('/script.js', (req, res) => {
+    const filePath = path.join(projectRoot, 'script.js');
+    if (fs.existsSync(filePath)) {
+        res.sendFile(filePath, { 
+            headers: { 'Content-Type': 'application/javascript' } 
+        });
+    } else {
+        res.status(404).send('JS file not found');
+    }
+});
+
+app.get('/favicon.ico', (req, res) => {
+    res.status(204).end(); // No content for favicon
+});
+
+// Serve other static files
+app.use(express.static(projectRoot, {
+    setHeaders: (res, filePath) => {
+        const ext = path.extname(filePath);
+        if (ext === '.css') {
+            res.setHeader('Content-Type', 'text/css');
+        } else if (ext === '.js') {
+            res.setHeader('Content-Type', 'application/javascript');
+        }
+    }
+}));
 
 // Catch-all route: serve index.html for SPA routing
-// This only runs if static middleware didn't find a file
 app.get('*', (req, res) => {
-    // Only serve index.html for routes that don't have file extensions
-    // Static files with extensions are already handled by express.static above
-    if (path.extname(req.path)) {
-        return res.status(404).send('Not found');
+    // Skip if this is a request for a static file
+    const ext = path.extname(req.path);
+    if (ext && ext !== '.html') {
+        return res.status(404).send('File not found');
     }
-    res.sendFile(path.join(staticPath, 'index.html'));
+    res.sendFile(path.join(projectRoot, 'index.html'));
 });
 
 // Socket.IO setup
