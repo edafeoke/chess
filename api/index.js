@@ -1,8 +1,14 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
 
 const app = express();
+
+// Serve static files from project root
+app.use(express.static(path.join(__dirname, '..')));
+
+// Create HTTP server and Socket.IO (for potential use, though limited in serverless)
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
@@ -11,10 +17,6 @@ const io = new Server(server, {
     },
     transports: ['websocket', 'polling']
 });
-
-// Serve static files from project root
-const path = require('path');
-app.use(express.static(path.join(__dirname, '..')));
 
 const games = new Map();
 const waitingPlayers = [];
@@ -204,6 +206,7 @@ io.on('connection', (socket) => {
     });
 });
 
-// Export for Vercel serverless
-// Note: This approach has limitations with Socket.IO due to serverless stateless nature
-module.exports = server;
+// Export Express app for Vercel serverless
+// Note: Socket.IO with persistent WebSocket connections will NOT work reliably 
+// on Vercel's serverless platform due to stateless nature of functions
+module.exports = app;
