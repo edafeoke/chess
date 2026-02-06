@@ -6,14 +6,15 @@ const app = express();
 
 // Get the project root directory
 // Try multiple possible paths for Vercel serverless environment
-let projectRoot = path.join(__dirname, '..');
+// First check if files are in the api directory (copied for Vercel)
+let projectRoot = __dirname;
+if (!fs.existsSync(path.join(projectRoot, 'style.css'))) {
+    // Try parent directory
+    projectRoot = path.join(__dirname, '..');
+}
 if (!fs.existsSync(path.join(projectRoot, 'style.css'))) {
     // Try process.cwd() as fallback
     projectRoot = process.cwd();
-}
-if (!fs.existsSync(path.join(projectRoot, 'style.css'))) {
-    // Try __dirname directly (if files are in same directory)
-    projectRoot = __dirname;
 }
 
 // Debug: Log the project root (remove in production if needed)
@@ -63,14 +64,29 @@ app.use(express.static(projectRoot, {
     }
 }));
 
+// Explicit root route
+app.get('/', (req, res) => {
+    const indexPath = path.join(projectRoot, 'index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(404).send(`Index.html not found at: ${indexPath}`);
+    }
+});
+
 // Catch-all route: serve index.html for SPA routing
 app.get('*', (req, res) => {
     // Skip if this is a request for a static file
     const ext = path.extname(req.path);
     if (ext && ext !== '.html') {
-        return res.status(404).send('File not found');
+        return res.status(404).send(`File not found: ${req.path}`);
     }
-    res.sendFile(path.join(projectRoot, 'index.html'));
+    const indexPath = path.join(projectRoot, 'index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(404).send(`Index.html not found at: ${indexPath}`);
+    }
 });
 
 // Socket.IO setup
